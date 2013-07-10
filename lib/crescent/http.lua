@@ -7,7 +7,7 @@
 ]]
 -- Imports.
 local socket = require 'socket'
-local MESSAGES = require 'lib/crescent/message'
+local msg = require 'lib/crescent/message'
 local MIME = require 'lib/crescent/mime'
 
 -- Logging.
@@ -18,26 +18,26 @@ local info = {}
 info.NAME = 'Crescent'
 info.VERSION = '0.0.1'
 
--- Initialize module items.
+-- Initialize module objects.
 local server, client
 
 -- Initialize config.
 local config = nil
 
--- Start web server.
+-- Starts web server.
 function start(cfg_path)
   -- Show server message.
-  log(MESSAGES.INIT:format(info.NAME, info.VERSION))
+  log(msg('INIT', info.NAME, info.VERSION))
   -- Create socket on host:port and begin accepting requests.
   local host, port = config.host or '*', config.port or 8880
   server = assert(socket.bind(host, port))
-  log(MESSAGES.RUN:format(host, port))
+  log(msg('RUN', host, port))
   take_requests()
 end
 
--- Wait for & handle requests.
+-- Waits for incoming requests.
 function take_requests()
-  -- Loop while waiting for requests.
+  -- Loop + timeout to wait.
   while true do
     client = assert(server:accept())
     client:settimeout(60)
@@ -46,21 +46,22 @@ function take_requests()
   end
 end
 
--- Serve content.
+-- Serves content.
 function serve(request)
   -- Attempt to match filename & extension and get mime info.
-  local method, file, ext = parse_request(request)
+  local method, url, file, ext = parse_request(request)
+  log(msg('REQUEST', method, url))
   if not ext then ext = '.txt' end
   local mime, binary = MIME[ext].mime, MIME[ext].bin
   -- Initialize response.
-  assert(client:send(MESSAGES.BEGIN_RESPONSE:format(info.NAME)))
+  assert(client:send(msg('BEGIN_RESPONSE', info.NAME)))
   -- Load requested file in appropriate mode.
   local loaded, mode
   if binary == false then mode = 'r' else mode = 'rb' end
   loaded = io.open(config.dir..file, mode)
   -- Send relevant mimetype info.
   if not loaded then mime = MIME['.html'].mime end
-  assert(client:send(MESSAGES.CONTENT_TYPE:format(mime)))
+  assert(client:send(msg('CONTENT_TYPE', mime)))
   -- Send loaded content or 404 page.
   if loaded then
     local content = loaded:read('*all')
@@ -72,34 +73,34 @@ function serve(request)
   client:close()
 end
 
--- Extract parameters from raw HTTP request string.
+-- Extracts parameters from raw HTTP request string.
 function parse_request(request)
   local parts = {}
   for match in request:gmatch('[^%s]+') do table.insert(parts, match) end
-  local method, file = unpack(parts)
+  local method, url = unpack(parts)
+  local file = url
   if string.char(string.byte(file, #file)) == '/' then
-    file = file..'index.html'
-  end
+    file = file..'index.html' end
   local ext = file:match('%.%l%l%l%l?')
-  return method, file, ext
+  return method, url, file, ext
 end
 
--- Configure the server with a config object loaded from passed path.
+-- Configures the server with a config object loaded from passed path.
 function configure(path, dir, port)
   local _cfg, cfg = config, nil
   if (path) then cfg = require(path) end
   if cfg then
-    log(MESSAGES.CONFIG.CUSTOM:format(path))
+    log(msg('CONFIG_CUSTOM', path))
     config = cfg
   else
-    log(MESSAGES.CONFIG.DEFAULT:format 'conf/default' )
+    log(msg 'CONFIG_DEFAULT')
     config = _cfg or require 'conf/default'
   end
   if dir then config.dir = dir end
   if port then config.port = port end
 end
 
--- Init server with command line options if present.
+-- Inits server with command line options if present.
 local function main(args)
   -- Handle man page requests.
   if args[1] == '--help' or args[1] == '-h' then
@@ -118,12 +119,11 @@ local function main(args)
   end
 end
 
--- If run from command line, invoke with flags.
+-- If run from command line, invokes server with flags.
 if (arg) then
   main(arg)
--- If imported via interpreter, silence logging and return module.
+-- If imported, returns module table.
 else
-  log = function() end
   return {
     start = start,
     configure = configure,
