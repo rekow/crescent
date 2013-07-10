@@ -7,7 +7,6 @@
 ]]
 -- Imports.
 local socket = require 'socket'
-local _ = require '_'
 local MESSAGES = require 'lib/crescent/message'
 local MIME = require 'lib/crescent/mime'
 
@@ -104,11 +103,14 @@ end
 local function main(args)
   -- Handle man page requests.
   if args[1] == '--help' or args[1] == '-h' then
-    local man = require 'conf/man'
+    local man = require 'lib/crescent/man'
     log(man)
   -- Handle server info requests.
   elseif args[1] == '--info' or args[1] == '-i' then
-    _.log(info)
+    for k, v in pairs(info) do print(k, v) end
+  -- Handle version requests.
+  elseif args[1] == '--version' or args[1] == '-v' then
+    print(info.VERSION)
   else    -- Init webserver.
     local dir, port = unpack(args)
     if dir and port then configure(nil, dir, port) else configure(dir) end
