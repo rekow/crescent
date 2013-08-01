@@ -1,4 +1,4 @@
--- Default server config. Use as example
+-- Default server config.
 return {
   dir = './app',
   host = '*',

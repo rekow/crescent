@@ -7,8 +7,9 @@
 ]]
 -- Imports.
 local socket = require 'socket'
-local msg = require 'lib/crescent/message'
-local MIME = require 'lib/crescent/mime'
+local msg = require '../lib/crescent/message'
+local MIME = require '../lib/crescent/mime'
+local VERSION = require '../lib/crescent/version'
 
 -- Logging.
 local log = function(...) print(...) end
@@ -16,65 +17,65 @@ local log = function(...) print(...) end
 -- Module information.
 local info = {}
 info.NAME = 'Crescent'
-info.VERSION = '0.0.1'
+info.VERSION = VERSION
 
 -- Initialize module objects.
-local server, client
+local server, client = {}
 
 -- Initialize config.
 local config = nil
 
 -- Starts web server.
-function start(cfg_path)
+function server:start(cfg_path)
   -- Show server message.
   log(msg('INIT', info.NAME, info.VERSION))
   -- Create socket on host:port and begin accepting requests.
   local host, port = config.host or '*', config.port or 8880
-  server = assert(socket.bind(host, port))
+  self.server = assert(socket.bind(host, port))
   log(msg('RUN', host, port))
-  take_requests()
+  self:take_requests()
 end
 
 -- Waits for incoming requests.
-function take_requests()
+function server:take_requests()
   -- Loop + timeout to wait.
   while true do
-    client = assert(server:accept())
-    client:settimeout(60)
-    local request = assert(client:receive())
-    serve(request)
+    self.client = assert(self.server:accept())
+    self.client:settimeout(60)
+    local request = assert(self.client:receive())
+    self:serve(request)
   end
 end
 
 -- Serves content.
-function serve(request)
+function server:serve(request)
   -- Attempt to match filename & extension and get mime info.
-  local method, url, file, ext = parse_request(request)
+  local method, url, file, ext = self.parse_request(request)
   log(msg('REQUEST', method, url))
   if not ext then ext = '.txt' end
   local mime, binary = MIME[ext].mime, MIME[ext].bin
   -- Initialize response.
-  assert(client:send(msg('BEGIN_RESPONSE', info.NAME)))
+  assert(self.client:send(msg('BEGIN_RESPONSE', info.NAME)))
   -- Load requested file in appropriate mode.
   local loaded, mode
   if binary == false then mode = 'r' else mode = 'rb' end
   loaded = io.open(config.dir..file, mode)
   -- Send relevant mimetype info.
   if not loaded then mime = MIME['.html'].mime end
-  assert(client:send(msg('CONTENT_TYPE', mime)))
+  assert(self.client:send(msg('CONTENT_TYPE', mime)))
   -- Send loaded content or 404 page.
   if loaded then
     local content = loaded:read('*all')
-    assert(client:send(content))
+    assert(self.client:send(content))
   else
     local err = io.open('lib/crescent/404.html', 'r')
-    assert(client:send(err:read('*all')))
+    assert(self.client:send(err:read('*all')))
   end
-  client:close()
+  self.client:close()
 end
 
 -- Extracts parameters from raw HTTP request string.
-function parse_request(request)
+function server.parse_request(request)
   local parts = {}
   for match in request:gmatch('[^%s]+') do table.insert(parts, match) end
   local method, url = unpack(parts)
@@ -86,7 +87,7 @@ function parse_request(request)
 end
 
 -- Configures the server with a config object loaded from passed path.
-function configure(path, dir, port)
+function server:configure(path, dir, port)
   local _cfg, cfg = config, nil
   if (path) then cfg = require(path) end
   if cfg then
@@ -99,6 +100,13 @@ function configure(path, dir, port)
   if dir then config.dir = dir end
   if port then config.port = port end
 end
+
+-- make server class callable.
+server = setmetatable(server, {
+  __call = function()
+    return setmetatable({}, { __index = server })
+  end
+})
 
 -- Inits server with command line options if present.
 local function main(args)
@@ -114,21 +122,16 @@ local function main(args)
     print(info.VERSION)
   else    -- Init webserver.
     local dir, port = unpack(args)
-    if dir and port then configure(nil, dir, port) else configure(dir) end
-    start()
+    local _server = server()
+    if dir and port then _server:configure(nil, dir, port) else _server:configure(dir) end
+    _server:start()
   end
 end
 
 -- If run from command line, invokes server with flags.
 if (arg) then
   main(arg)
--- If imported, returns module table.
+-- If imported, returns module callable.
 else
-  return {
-    start = start,
-    configure = configure,
-    parse_request = parse_request,
-    NAME = info.NAME,
-    VERSION = info.VERSION
-  }
+  return server
 end

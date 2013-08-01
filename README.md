@@ -4,8 +4,8 @@ A thin webserver written in Lua. Crescent is in very early development, and curr
 
 Requirements
 ------------
- - [Lua](http://www.lua.org), in your system's `$PATH`
- - [LuaSocket](https://github.com/diegonehab/luasocket)
+ - [Lua](http://www.lua.org) >= 5.1, added to your system's `$PATH`
+ - [LuaSocket](https://github.com/diegonehab/luasocket) >= 3.0-rc1
 
 Usage
 -----
@@ -29,7 +29,7 @@ Roadmap
  - Support other HTTP methods than `GET`.
  - Header parsing & sending.
  - Sockets?
- - Routing & handlers?
+ - Coroutines.
  - TEST SUITE.
 
 Why `crescent`?
