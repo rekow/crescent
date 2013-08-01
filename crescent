@@ -1,4 +1,4 @@
 #!/bin/sh
 # Run Crescent webserver locally.
 
-lua ./src/http.lua $@
+lua $PWD/src/http.lua $@
