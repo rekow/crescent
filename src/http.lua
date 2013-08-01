@@ -7,10 +7,9 @@
 ]]
 -- Imports.
 local socket = require 'socket'
-local msg = require 'lib/crescent/message'
-local MIME = require 'lib/crescent/mime'
-local VERSION = require 'lib/crescent/version'
-
+local msg = require './lib/crescent/message'
+local MIME = require './lib/crescent/mime'
+local VERSION = require './lib/crescent/version'
 -- Logging.
 local log = function(...) print(...) end
 
@@ -68,7 +67,7 @@ function server:serve(request)
     local content = loaded:read('*all')
     assert(self.client:send(content))
   else
-    local err = io.open('lib/crescent/404.html', 'r')
+    local err = io.open('./lib/crescent/404.html', 'r')
     assert(self.client:send(err:read('*all')))
   end
   self.client:close()
@@ -112,7 +111,7 @@ server = setmetatable(server, {
 local function main(args)
   -- Handle man page requests.
   if args[1] == '--help' or args[1] == '-h' then
-    local man = require 'lib/crescent/man'
+    local man = require './lib/crescent/man'
     log(man)
   -- Handle server info requests.
   elseif args[1] == '--info' or args[1] == '-i' then
