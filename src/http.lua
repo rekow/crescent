@@ -7,9 +7,9 @@
 ]]
 -- Imports.
 local socket = require 'socket'
-local msg = require '../lib/crescent/message'
-local MIME = require '../lib/crescent/mime'
-local VERSION = require '../lib/crescent/version'
+local msg = require 'lib/crescent/message'
+local MIME = require 'lib/crescent/mime'
+local VERSION = require 'lib/crescent/version'
 
 -- Logging.
 local log = function(...) print(...) end
