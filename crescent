@@ -2,4 +2,6 @@
 # Run Crescent webserver locally.
 
 DIR=$( cd "$( dirname "$0" )" && pwd )
-lua $DIR/src/http.lua $@
+NOWDIR=$PWD
+cd $DIR
+lua http.lua $NOWDIR $1
